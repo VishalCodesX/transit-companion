@@ -9,7 +9,7 @@ import { Badge, LiveDot } from "@/components/common/Badge";
 import { Button } from "@/components/common/Button";
 import { StatCard } from "@/components/common/StatCard";
 import { Modal } from "@/components/common/Modal";
-import { MapView } from "@/components/common/MapView";
+import { SmartMapView as MapView } from "@/components/common/SmartMapView";
 import { Spinner } from "@/components/common/Spinner";
 import { useAuth } from "@/context/AuthContext";
 import { useGeoLocation, useTripTimer } from "@/hooks/useGeoLocation";
@@ -317,7 +317,7 @@ function IdleView({
             loading={starting}
             disabled={!gpsSupported}
             leftIcon={<Play className="h-5 w-5" />}
-            className="w-full mt-6"
+            className={`w-full mt-6 ${!gpsSupported ? "animate-shake" : ""}`}
           >
             Start Trip
           </Button>

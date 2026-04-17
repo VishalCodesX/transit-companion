@@ -7,7 +7,7 @@ import { db } from "@/services/firebase";
 import { AdminSidebar } from "@/components/common/AdminSidebar";
 import { Badge, LiveDot } from "@/components/common/Badge";
 import { Button } from "@/components/common/Button";
-import { MapView } from "@/components/common/MapView";
+import { SmartMapView as MapView } from "@/components/common/SmartMapView";
 import { Modal } from "@/components/common/Modal";
 import { Spinner } from "@/components/common/Spinner";
 import { useAllBuses, type BusDoc } from "@/hooks/useBuses";

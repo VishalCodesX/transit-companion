@@ -2,6 +2,7 @@ import {
   signInWithEmailAndPassword,
   signOut as fbSignOut,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   type User as FirebaseUser,
 } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -40,6 +41,14 @@ export async function signIn(email: string, password: string) {
 export async function signOut() {
   if (!isFirebaseConfigured) return;
   return fbSignOut(auth);
+}
+
+export async function requestPasswordReset(email: string) {
+  if (!isFirebaseConfigured) throw new Error("Firebase is not configured.");
+  return sendPasswordResetEmail(auth, email, {
+    url: `${window.location.origin}/reset-password`,
+    handleCodeInApp: true,
+  });
 }
 
 export function onAuthChange(cb: (user: FirebaseUser | null) => void) {

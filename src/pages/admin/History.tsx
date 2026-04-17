@@ -5,7 +5,8 @@ import { AdminSidebar } from "@/components/common/AdminSidebar";
 import { Badge } from "@/components/common/Badge";
 import { Modal } from "@/components/common/Modal";
 import { Spinner } from "@/components/common/Spinner";
-import { MapView, type MapBus } from "@/components/common/MapView";
+import { SmartMapView } from "@/components/common/SmartMapView";
+import { type MapBus } from "@/components/common/MapView";
 import { useAllBuses } from "@/hooks/useBuses";
 import { useAllUsers } from "@/hooks/useUsers";
 import { useTripHistory, fetchTripPath, type TripDoc, type LocationLogPoint } from "@/hooks/useTripHistory";
@@ -177,17 +178,17 @@ function Row({ label, value, mono }: { label: string; value: React.ReactNode; mo
   );
 }
 
-/** Renders the polyline as a series of dots in the stub map. */
+/** Renders bus path as polyline (Google Maps) or start/end markers (stub). */
 function PathMap({ path }: { path: LocationLogPoint[] }) {
   if (path.length === 0) {
     return <div className="h-full flex items-center justify-center bg-surface text-sm text-muted-foreground">No location log points recorded.</div>;
   }
-  // Reuse MapView with synthetic "buses" — start, end, and dotted intermediate.
   const start = path[0];
   const end = path[path.length - 1];
   const buses: MapBus[] = [
     { id: "start", busNumber: "Start", lat: start.lat, lng: start.lng, heading: 0, status: "idle" },
     { id: "end", busNumber: "End", lat: end.lat, lng: end.lng, heading: 0, status: "active" },
   ];
-  return <MapView buses={buses} className="h-full" showStubBanner={false} />;
+  const polyline = path.map((p) => ({ lat: p.lat, lng: p.lng }));
+  return <SmartMapView buses={buses} polyline={polyline} className="h-full" showStubBanner={false} />;
 }
