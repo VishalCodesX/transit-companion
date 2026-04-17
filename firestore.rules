@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isRole(role) {
+      return isSignedIn() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (request.auth.uid == uid || isRole('admin'));
+    }
+
+    match /buses/{busId} {
+      allow read: if isSignedIn();
+      allow write: if isRole('driver') || isRole('admin');
+    }
+
+    match /trips/{tripId} {
+      allow read: if isSignedIn();
+      allow create, update: if isRole('driver') || isRole('admin');
+
+      match /locationLog/{logId} {
+        allow read: if isSignedIn();
+        allow create: if isRole('driver') || isRole('admin');
+      }
+    }
+
+    match /notifications/{notifId} {
+      allow read: if isSignedIn();
+      allow write: if isRole('admin');
+    }
+  }
+}
