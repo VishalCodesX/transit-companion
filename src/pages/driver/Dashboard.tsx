@@ -317,7 +317,7 @@ function IdleView({
             loading={starting}
             disabled={!gpsSupported}
             leftIcon={<Play className="h-5 w-5" />}
-            className="w-full mt-6"
+            className={`w-full mt-6 ${!gpsSupported ? "animate-shake" : ""}`}
           >
             Start Trip
           </Button>
