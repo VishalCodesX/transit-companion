@@ -1,105 +1,157 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* TransitIQ design system — dark, glassmorphism-light, electric blue accent
+   All colors are HSL. Semantic tokens only. */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Map TransitIQ palette to shadcn-style tokens */
+    --background: 215 28% 7%;          /* #0D1117 */
+    --foreground: 213 27% 91%;         /* #E6EDF3 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --surface: 215 22% 11%;            /* #161B22 */
+    --surface-elevated: 220 26% 15%;   /* #1C2333 */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --card: 215 22% 11%;
+    --card-foreground: 213 27% 91%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --popover: 220 26% 15%;
+    --popover-foreground: 213 27% 91%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --primary: 217 91% 64%;            /* #4F8EF7 electric blue */
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 217 91% 70%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --secondary: 215 22% 14%;
+    --secondary-foreground: 213 27% 91%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --muted: 215 22% 14%;
+    --muted-foreground: 215 14% 58%;   /* #8B949E */
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --accent: 217 91% 64%;
+    --accent-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --success: 142 71% 45%;            /* #22C55E */
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;             /* #F59E0B */
+    --warning-foreground: 215 28% 7%;
+
+    --destructive: 0 84% 60%;          /* #EF4444 */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 14% 22%;             /* #30363D */
+    --input: 215 22% 14%;
+    --ring: 217 91% 64%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Gradients & shadows */
+    --gradient-radial: radial-gradient(circle at 20% 0%, hsl(217 91% 64% / 0.15), transparent 50%),
+                       radial-gradient(circle at 80% 100%, hsl(217 91% 50% / 0.1), transparent 50%);
+    --shadow-glass: 0 8px 32px hsl(215 28% 3% / 0.4);
+    --shadow-glow: 0 0 24px hsl(217 91% 64% / 0.35);
 
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 215 22% 11%;
+    --sidebar-foreground: 213 27% 91%;
+    --sidebar-primary: 217 91% 64%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 22% 14%;
+    --sidebar-accent-foreground: 213 27% 91%;
+    --sidebar-border: 215 14% 22%;
+    --sidebar-ring: 217 91% 64%;
   }
 
+  /* App is dark by default — keep .dark mirror for shadcn compatibility */
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: 215 28% 7%;
+    --foreground: 213 27% 91%;
+    --card: 215 22% 11%;
+    --card-foreground: 213 27% 91%;
+    --popover: 220 26% 15%;
+    --popover-foreground: 213 27% 91%;
+    --primary: 217 91% 64%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 22% 14%;
+    --secondary-foreground: 213 27% 91%;
+    --muted: 215 22% 14%;
+    --muted-foreground: 215 14% 58%;
+    --accent: 217 91% 64%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 14% 22%;
+    --input: 215 22% 14%;
+    --ring: 217 91% 64%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
+  * { @apply border-border; }
+  html { color-scheme: dark; }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv11", "ss01";
+    background-image: var(--gradient-radial);
+    background-attachment: fixed;
+  }
+  .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+}
+
+@layer components {
+  /* Glassmorphism-light: subtle frosted panel */
+  .glass {
+    background: hsl(215 22% 11% / 0.7);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    border: 1px solid hsl(215 14% 22% / 0.8);
+    box-shadow: var(--shadow-glass);
+  }
+  .glass-elevated {
+    background: hsl(220 26% 15% / 0.75);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border: 1px solid hsl(215 14% 26% / 0.9);
+    box-shadow: var(--shadow-glass);
   }
 
-  body {
-    @apply bg-background text-foreground;
+  /* Live pulsing dot */
+  .live-dot {
+    @apply relative inline-block w-2.5 h-2.5 rounded-full bg-success;
   }
+  .live-dot::after {
+    content: '';
+    @apply absolute inset-0 rounded-full bg-success;
+    animation: live-pulse 1.6s ease-out infinite;
+  }
+}
+
+@layer utilities {
+  .text-success { color: hsl(var(--success)); }
+  .bg-success { background-color: hsl(var(--success)); }
+  .text-warning { color: hsl(var(--warning)); }
+  .bg-warning { background-color: hsl(var(--warning)); }
+  .bg-surface { background-color: hsl(var(--surface)); }
+  .bg-surface-elevated { background-color: hsl(var(--surface-elevated)); }
+
+  .animate-shake { animation: shake 0.5s ease-in-out; }
+  .animate-fade-in { animation: fade-in 0.4s ease-out both; }
+}
+
+@keyframes live-pulse {
+  0%   { transform: scale(1);   opacity: 0.7; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+@keyframes shake {
+  0%,100%{ transform: translateX(0); }
+  20%,60%{ transform: translateX(-6px); }
+  40%,80%{ transform: translateX(6px); }
+}
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
