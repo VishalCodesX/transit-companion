@@ -5,7 +5,7 @@ import clsx from "clsx";
 import { TopBar } from "@/components/common/TopBar";
 import { Badge, LiveDot } from "@/components/common/Badge";
 import { Spinner } from "@/components/common/Spinner";
-import { MapView } from "@/components/common/MapView";
+import { SmartMapView as MapView } from "@/components/common/SmartMapView";
 import { useAuth } from "@/context/AuthContext";
 import { useAllBuses, useBusLocation, type BusDoc } from "@/hooks/useBuses";
 import { useNotifications } from "@/hooks/useNotifications";

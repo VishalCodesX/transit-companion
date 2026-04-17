@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import type { ReactNode } from "react";
+import { CountUp } from "./CountUp";
 
 export function StatCard({
   label,
@@ -23,13 +24,16 @@ export function StatCard({
     danger: "text-destructive bg-destructive/10",
     neutral: "text-muted-foreground bg-muted",
   };
+  // Auto-animate plain integer values
+  const display =
+    typeof value === "number" && Number.isFinite(value) ? <CountUp value={value} /> : value;
   return (
     <div className={clsx("glass rounded-xl p-4 flex flex-col gap-2", className)}>
       <div className="flex items-center justify-between">
         <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
         {icon && <span className={clsx("h-7 w-7 rounded-md flex items-center justify-center", accents[accent])}>{icon}</span>}
       </div>
-      <div className="text-2xl font-semibold tracking-tight font-mono">{value}</div>
+      <div className="text-2xl font-semibold tracking-tight font-mono">{display}</div>
       {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
     </div>
   );

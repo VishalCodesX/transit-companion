@@ -4,7 +4,7 @@ import { Truck, Users, Activity, GraduationCap, Wifi } from "lucide-react";
 import { AdminSidebar } from "@/components/common/AdminSidebar";
 import { StatCard } from "@/components/common/StatCard";
 import { Badge, LiveDot } from "@/components/common/Badge";
-import { MapView } from "@/components/common/MapView";
+import { SmartMapView as MapView } from "@/components/common/SmartMapView";
 import { Spinner } from "@/components/common/Spinner";
 import { useAllBuses } from "@/hooks/useBuses";
 import { useAllUsers } from "@/hooks/useUsers";
