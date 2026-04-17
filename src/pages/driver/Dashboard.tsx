@@ -442,11 +442,19 @@ function ActiveTripView({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 h-[480px]">
           <MapView
-            lat={position?.lat ?? null}
-            lng={position?.lng ?? null}
-            heading={position?.heading ?? 0}
-            busNumber={bus.busNumber}
-            status="active"
+            buses={
+              position
+                ? [{
+                    id: bus.id,
+                    busNumber: bus.busNumber,
+                    lat: position.lat,
+                    lng: position.lng,
+                    heading: position.heading,
+                    status: "active",
+                  }]
+                : []
+            }
+            selectedBusId={bus.id}
             className="h-full"
           />
         </div>

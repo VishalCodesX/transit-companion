@@ -8,6 +8,13 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import Login from "./pages/Login";
 import DriverDashboard from "./pages/driver/Dashboard";
+import StudentDashboard from "./pages/student/Dashboard";
+import AdminOverview from "./pages/admin/Overview";
+import AdminFleet from "./pages/admin/Fleet";
+import AdminBuses from "./pages/admin/Buses";
+import AdminDrivers from "./pages/admin/Drivers";
+import AdminHistory from "./pages/admin/History";
+import AdminNotifications from "./pages/admin/Notifications";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound";
 
@@ -36,47 +43,21 @@ const App = () => (
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<Login />} />
 
-            <Route
-              path="/driver"
-              element={
-                <ProtectedRoute allow={["driver"]}>
-                  <DriverDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/driver/history"
-              element={
-                <ProtectedRoute allow={["driver"]}>
-                  <ComingSoon title="Trip History" subtitle="Detailed trip logs ship in a later phase." />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/driver/notifications"
-              element={
-                <ProtectedRoute allow={["driver"]}>
-                  <ComingSoon title="Notifications" />
-                </ProtectedRoute>
-              }
-            />
+            {/* Driver */}
+            <Route path="/driver" element={<ProtectedRoute allow={["driver"]}><DriverDashboard /></ProtectedRoute>} />
+            <Route path="/driver/history" element={<ProtectedRoute allow={["driver"]}><ComingSoon title="Trip History" subtitle="Your personal trip log will live here." /></ProtectedRoute>} />
+            <Route path="/driver/notifications" element={<ProtectedRoute allow={["driver"]}><ComingSoon title="Notifications" /></ProtectedRoute>} />
 
-            <Route
-              path="/student"
-              element={
-                <ProtectedRoute allow={["student"]}>
-                  <ComingSoon title="Student Dashboard" subtitle="Live tracking and ETAs ship in Phase 2." />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/*"
-              element={
-                <ProtectedRoute allow={["admin"]}>
-                  <ComingSoon title="Admin Console" subtitle="Fleet, drivers, and history ship in Phase 3." />
-                </ProtectedRoute>
-              }
-            />
+            {/* Student */}
+            <Route path="/student" element={<ProtectedRoute allow={["student"]}><StudentDashboard /></ProtectedRoute>} />
+
+            {/* Admin */}
+            <Route path="/admin" element={<ProtectedRoute allow={["admin"]}><AdminOverview /></ProtectedRoute>} />
+            <Route path="/admin/fleet" element={<ProtectedRoute allow={["admin"]}><AdminFleet /></ProtectedRoute>} />
+            <Route path="/admin/buses" element={<ProtectedRoute allow={["admin"]}><AdminBuses /></ProtectedRoute>} />
+            <Route path="/admin/drivers" element={<ProtectedRoute allow={["admin"]}><AdminDrivers /></ProtectedRoute>} />
+            <Route path="/admin/history" element={<ProtectedRoute allow={["admin"]}><AdminHistory /></ProtectedRoute>} />
+            <Route path="/admin/notifications" element={<ProtectedRoute allow={["admin"]}><AdminNotifications /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
