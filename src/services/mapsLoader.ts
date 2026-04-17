@@ -17,7 +17,7 @@ export function loadGoogleMaps(): Promise<typeof google> {
     version: "weekly",
     libraries: ["maps", "marker"],
   });
-  loadPromise = loader.importLibrary("maps").then(() => google);
+  loadPromise = loader.load().then(() => google);
   return loadPromise;
 }
 
