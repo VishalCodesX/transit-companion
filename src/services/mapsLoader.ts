@@ -1,10 +1,11 @@
-import { Loader } from "@googlemaps/js-api-loader";
+import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
+
+/// <reference types="google.maps" />
 
 /** Google Maps JS API key — optional. When unset, MapView falls back to the stub. */
 export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? "";
 export const isGoogleMapsConfigured = Boolean(GOOGLE_MAPS_API_KEY);
 
-let loader: Loader | null = null;
 let loadPromise: Promise<typeof google> | null = null;
 
 export function loadGoogleMaps(): Promise<typeof google> {
@@ -12,12 +13,11 @@ export function loadGoogleMaps(): Promise<typeof google> {
     return Promise.reject(new Error("Google Maps API key not configured"));
   }
   if (loadPromise) return loadPromise;
-  loader = new Loader({
-    apiKey: GOOGLE_MAPS_API_KEY,
-    version: "weekly",
-    libraries: ["maps", "marker"],
+  setOptions({
+    key: GOOGLE_MAPS_API_KEY,
+    v: "weekly",
   });
-  loadPromise = loader.load().then(() => google);
+  loadPromise = Promise.all([importLibrary("maps"), importLibrary("marker")]).then(() => google);
   return loadPromise;
 }
 
