@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import Login from "./pages/Login";
+import ResetPassword from "./pages/ResetPassword";
 import DriverDashboard from "./pages/driver/Dashboard";
 import StudentDashboard from "./pages/student/Dashboard";
 import AdminOverview from "./pages/admin/Overview";
@@ -17,6 +18,7 @@ import AdminHistory from "./pages/admin/History";
 import AdminNotifications from "./pages/admin/Notifications";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound";
+import { OfflineBanner } from "@/components/common/OfflineBanner";
 
 const queryClient = new QueryClient();
 
@@ -39,9 +41,11 @@ const App = () => (
       />
       <BrowserRouter>
         <AuthProvider>
+          <OfflineBanner />
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Driver */}
             <Route path="/driver" element={<ProtectedRoute allow={["driver"]}><DriverDashboard /></ProtectedRoute>} />
