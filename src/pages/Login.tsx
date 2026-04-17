@@ -5,9 +5,10 @@ import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/common/Button";
 import { Spinner } from "@/components/common/Spinner";
+import { Modal } from "@/components/common/Modal";
 import { ROLE_HOME } from "@/utils/constants";
 import { isFirebaseConfigured } from "@/services/firebase";
-import { fetchUserProfile } from "@/services/authService";
+import { fetchUserProfile, requestPasswordReset } from "@/services/authService";
 import { auth } from "@/services/firebase";
 import { seedDatabase, SEED_CREDENTIALS } from "@/utils/seedDatabase";
 
@@ -64,6 +65,9 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [showCreds, setShowCreds] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSending, setForgotSending] = useState(false);
 
   // Already signed in? Redirect.
   useEffect(() => {
@@ -148,6 +152,15 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="space-y-3">
           <FloatingInput id="email" type="email" value={email} onChange={setEmail} label="Email" icon={Mail} autoComplete="email" />
           <FloatingInput id="password" type="password" value={password} onChange={setPassword} label="Password" icon={Lock} autoComplete="current-password" />
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => { setForgotEmail(email); setForgotOpen(true); }}
+              className="text-xs text-primary hover:underline"
+            >
+              Forgot password?
+            </button>
+          </div>
           <Button type="submit" size="lg" loading={submitting} disabled={!isFirebaseConfigured} className="w-full mt-2">
             Sign In
           </Button>
