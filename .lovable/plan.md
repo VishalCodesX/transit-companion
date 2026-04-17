@@ -1,10 +1,7 @@
 
-The user wants a checklist of what they need to do on their end to complete TransitIQ. This is a status/handoff question, not an implementation task — but the spec asked me to flag missing setup. Let me give a concise, organized checklist.
+The user is asking about their **current** Firestore rules (the default test-mode rules that expire after 30 days) and what they should change for production. This is a research/advisory question — no code changes needed in the Lovable codebase. The proper production rules already exist in `firestore.rules` in the project from earlier work.
 
-Based on the codebase:
-- Firebase config is hardcoded (transitiq-11) — works out of the box
-- Google Maps key is optional (stub fallback exists)
-- Firestore rules exist in `firestore.rules` but must be deployed
-- Auth providers must be enabled in Firebase console
-- Authorized domains must include the Lovable preview/published domain
-- Demo seed must be triggered manually
+I'll give them:
+1. Confirmation that yes, those are dangerous test-mode rules
+2. The exact production rules to paste into Firebase Console (matching the spec + their schema)
+3. Step-by-step instructions to deploy
