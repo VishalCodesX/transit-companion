@@ -5,7 +5,12 @@
  * primary auth session.
  */
 import { initializeApp, deleteApp } from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
 import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { db, isFirebaseConfigured, firebaseConfig } from "@/services/firebase";
 import type { Role } from "@/utils/constants";
