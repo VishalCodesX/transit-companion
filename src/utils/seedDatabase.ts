@@ -5,7 +5,12 @@
  * primary auth session.
  */
 import { initializeApp, deleteApp } from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
 import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { db, isFirebaseConfigured, firebaseConfig } from "@/services/firebase";
 import type { Role } from "@/utils/constants";
@@ -47,35 +52,17 @@ export async function seedDatabase(): Promise<SeedResult> {
 
   const result: SeedResult = { buses: 0, accountsCreated: 0, accountsSkipped: 0, errors: [] };
 
-  // 1) Buses
-  for (const b of BUSES) {
-    await setDoc(
-      doc(db, "buses", b.id),
-      {
-        busNumber: b.busNumber,
-        routeName: b.routeName,
-        licensePlate: b.licensePlate,
-        capacity: b.capacity,
-        lat: b.lat,
-        lng: b.lng,
-        heading: 0,
-        speed: 0,
-        driverId: null,
-        driverName: null,
-        status: "idle",
-        currentTripId: null,
-        lastUpdated: serverTimestamp(),
-      },
-      { merge: true },
-    );
-    result.buses++;
-  }
-
-  // 2) Accounts via secondary app (so we don't disturb the primary session)
+  // Use a secondary app so we don't disturb the primary user's session
   const secondary = initializeApp(firebaseConfig, "transitiq-seed");
   const secondaryAuth = getAuth(secondary);
 
+  const adminAccount = ACCOUNTS.find((a) => a.role === "admin")!;
+  // Track driver UIDs for bus assignment (driver emails created in this run)
+  const driverUidByEmail = new Map<string, string>();
+
   try {
+    // 1) Create each Auth user. While signed in AS that user, write their own
+    //    users/{uid} doc — allowed by rule `request.auth.uid == uid`.
     for (const acc of ACCOUNTS) {
       try {
         const cred = await createUserWithEmailAndPassword(secondaryAuth, acc.email, acc.password);
@@ -87,29 +74,74 @@ export async function seedDatabase(): Promise<SeedResult> {
           photoURL: null,
           createdAt: serverTimestamp(),
         });
-
-        // If a driver, set them on the assigned bus doc
-        if (acc.role === "driver" && acc.assignedBusId) {
-          await setDoc(
-            doc(db, "buses", acc.assignedBusId),
-            { driverId: cred.user.uid, driverName: acc.name },
-            { merge: true },
-          );
+        if (acc.role === "driver") {
+          driverUidByEmail.set(acc.email, cred.user.uid);
         }
-
         await signOut(secondaryAuth);
         result.accountsCreated++;
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg.includes("email-already-in-use")) {
           result.accountsSkipped++;
-          // Best-effort: ensure profile doc exists. We can't get UID without sign-in,
-          // so we only ensure bus assignment for known driver emails by skipping silently.
+          // Try to recover the UID by signing in, so we can still update bus assignment
+          try {
+            const cred = await signInWithEmailAndPassword(secondaryAuth, acc.email, acc.password);
+            if (acc.role === "driver") driverUidByEmail.set(acc.email, cred.user.uid);
+            await signOut(secondaryAuth);
+          } catch {
+            /* password may differ; skip */
+          }
         } else {
           result.errors.push(`${acc.email}: ${msg}`);
         }
       }
     }
+
+    // 2) Sign in as admin to write bus docs (rules require admin role)
+    try {
+      await signInWithEmailAndPassword(secondaryAuth, adminAccount.email, adminAccount.password);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      result.errors.push(`Admin sign-in failed for bus seeding: ${msg}`);
+      return result;
+    }
+
+    for (const b of BUSES) {
+      // Find a driver assigned to this bus, if any
+      const driverAcc = ACCOUNTS.find(
+        (a) => a.role === "driver" && a.assignedBusId === b.id,
+      );
+      const driverUid = driverAcc ? driverUidByEmail.get(driverAcc.email) ?? null : null;
+      const driverName = driverAcc?.name ?? null;
+
+      try {
+        await setDoc(
+          doc(db, "buses", b.id),
+          {
+            busNumber: b.busNumber,
+            routeName: b.routeName,
+            licensePlate: b.licensePlate,
+            capacity: b.capacity,
+            lat: b.lat,
+            lng: b.lng,
+            heading: 0,
+            speed: 0,
+            driverId: driverUid,
+            driverName,
+            status: "idle",
+            currentTripId: null,
+            lastUpdated: serverTimestamp(),
+          },
+          { merge: true },
+        );
+        result.buses++;
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        result.errors.push(`bus ${b.id}: ${msg}`);
+      }
+    }
+
+    await signOut(secondaryAuth).catch(() => {});
   } finally {
     await deleteApp(secondary).catch(() => {});
   }
