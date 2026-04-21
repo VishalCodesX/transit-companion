@@ -22,7 +22,15 @@ interface BusForm {
   lng: number;
 }
 
-const EMPTY: BusForm = { id: "", busNumber: "", routeName: "", licensePlate: "", capacity: 40, lat: 12.97, lng: 77.59 };
+const EMPTY: BusForm = {
+  id: "",
+  busNumber: "",
+  routeName: "",
+  licensePlate: "",
+  capacity: 40,
+  lat: 13.033540,
+  lng: 80.179483,
+};
 
 export default function AdminBuses() {
   const { buses, loading } = useAllBuses();
@@ -100,11 +108,22 @@ export default function AdminBuses() {
   async function handleAssign(driverId: string | null) {
     if (!assigning) return;
     const driver = drivers.find((d) => d.uid === driverId) ?? null;
+    const locationPatch = driver?.lastLocation
+      ? {
+          lat: driver.lastLocation.lat,
+          lng: driver.lastLocation.lng,
+          lastUpdated: serverTimestamp(),
+        }
+      : {};
     setSaving(true);
     try {
       await setDoc(
         doc(db, "buses", assigning.id),
-        { driverId: driver?.uid ?? null, driverName: driver?.name ?? null },
+        {
+          driverId: driver?.uid ?? null,
+          driverName: driver?.name ?? null,
+          ...locationPatch,
+        },
         { merge: true },
       );
       // Update the driver's profile too

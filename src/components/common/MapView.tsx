@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import clsx from "clsx";
-import { Bus, MapPin, Navigation } from "lucide-react";
+import L from "leaflet";
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { Bus, MapPin } from "lucide-react";
 import { distanceMeters } from "@/utils/mapUtils";
 
 export interface MapBus {
@@ -13,80 +15,84 @@ export interface MapBus {
 }
 
 interface Props {
-  /** Buses to render. */
   buses: MapBus[];
-  /** Optional selected/highlighted bus id. */
   selectedBusId?: string | null;
-  /** Optional "my stop" pin (student view). */
   myStop?: { lat: number; lng: number } | null;
-  /** Click handler — also receives a synthetic "tap" with map coords. */
+  polyline?: { lat: number; lng: number }[];
   onBusClick?: (bus: MapBus) => void;
   onMapClick?: (coords: { lat: number; lng: number }) => void;
   className?: string;
-  /** Show the "API key pending" banner (default true). */
   showStubBanner?: boolean;
+  stopDraggable?: boolean;
 }
 
-/**
- * Stylized SVG-based "map" that supports multiple buses with smooth position
- * interpolation between Firestore updates. Drop-in replacement target for the
- * future Google Maps integration.
- */
+const DEFAULT_CENTER = { lat: 12.9716, lng: 77.5946 };
+const STATUS_COLOR: Record<MapBus["status"], string> = {
+  active: "#22C55E",
+  idle: "#F59E0B",
+  offline: "#8B949E",
+};
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function createBusIcon(bus: MapBus, selected: boolean): L.DivIcon {
+  const color = STATUS_COLOR[bus.status];
+  const label = escapeHtml(bus.busNumber);
+  return L.divIcon({
+    className: "leaflet-bus-div-icon",
+    iconSize: [72, 72],
+    iconAnchor: [36, 36],
+    popupAnchor: [0, -24],
+    html: `<div class="leaflet-bus-marker${selected ? " is-selected" : ""}" style="--bus-color:${color};--bus-heading:${bus.heading}deg;">
+      <span class="leaflet-bus-marker__glow"></span>
+      <span class="leaflet-bus-marker__chip">
+        <svg viewBox="0 0 24 24" aria-hidden="true" role="img">
+          <rect x="6.5" y="4.5" width="11" height="12" rx="2.5" ry="2.5" fill="var(--bus-color)" />
+          <rect x="8.5" y="6.7" width="7" height="3.2" rx="0.8" fill="#0D1117" />
+          <circle cx="9" cy="17.5" r="1.4" fill="#0D1117" />
+          <circle cx="15" cy="17.5" r="1.4" fill="#0D1117" />
+          <path d="M12 1.8L15.6 6.2H8.4L12 1.8Z" fill="var(--bus-color)" />
+        </svg>
+      </span>
+      <span class="leaflet-bus-marker__label">${label}</span>
+    </div>`,
+  });
+}
+
+function createPopupHtml(bus: MapBus): string {
+  const status = escapeHtml(bus.status);
+  const busNumber = escapeHtml(bus.busNumber);
+  return `<div class="leaflet-popup-shell">
+    <p class="leaflet-popup-shell__title">${busNumber}</p>
+    <p class="leaflet-popup-shell__meta">Status: ${status}</p>
+  </div>`;
+}
+
 export function MapView({
   buses,
   selectedBusId,
   myStop,
+  polyline,
   onBusClick,
   onMapClick,
   className,
-  showStubBanner = true,
+  showStubBanner = false,
+  stopDraggable = true,
 }: Props) {
-  // Compute a stable bounding box across all bus + stop coords so we can project
-  // lat/lng to viewport %.
-  const bounds = useMemo(() => {
-    const coords: { lat: number; lng: number }[] = buses.map((b) => ({ lat: b.lat, lng: b.lng }));
-    if (myStop) coords.push(myStop);
-    if (coords.length === 0) {
-      return { minLat: 12.965, maxLat: 12.98, minLng: 77.585, maxLng: 77.605 };
-    }
-    let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
-    for (const c of coords) {
-      if (!Number.isFinite(c.lat) || !Number.isFinite(c.lng)) continue;
-      minLat = Math.min(minLat, c.lat);
-      maxLat = Math.max(maxLat, c.lat);
-      minLng = Math.min(minLng, c.lng);
-      maxLng = Math.max(maxLng, c.lng);
-    }
-    // Pad
-    const padLat = Math.max((maxLat - minLat) * 0.25, 0.002);
-    const padLng = Math.max((maxLng - minLng) * 0.25, 0.002);
-    return {
-      minLat: minLat - padLat,
-      maxLat: maxLat + padLat,
-      minLng: minLng - padLng,
-      maxLng: maxLng + padLng,
-    };
-  }, [buses, myStop]);
-
-  function project(lat: number, lng: number) {
-    const x = ((lng - bounds.minLng) / (bounds.maxLng - bounds.minLng || 1)) * 100;
-    const y = (1 - (lat - bounds.minLat) / (bounds.maxLat - bounds.minLat || 1)) * 100;
-    return { x: Math.max(2, Math.min(98, x)), y: Math.max(2, Math.min(98, y)) };
-  }
-
-  function unproject(xPct: number, yPct: number) {
-    const lng = bounds.minLng + (xPct / 100) * (bounds.maxLng - bounds.minLng);
-    const lat = bounds.minLat + (1 - yPct / 100) * (bounds.maxLat - bounds.minLat);
-    return { lat, lng };
-  }
-
-  function handleClick(e: React.MouseEvent<HTMLDivElement>) {
-    if (!onMapClick) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
-    const yPct = ((e.clientY - rect.top) / rect.height) * 100;
-    onMapClick(unproject(xPct, yPct));
-  }
+  const initialCenter = useMemo(() => {
+    const selected = selectedBusId ? buses.find((bus) => bus.id === selectedBusId) : null;
+    if (selected) return { lat: selected.lat, lng: selected.lng };
+    if (buses[0]) return { lat: buses[0].lat, lng: buses[0].lng };
+    if (myStop) return { lat: myStop.lat, lng: myStop.lng };
+    return DEFAULT_CENTER;
+  }, [buses, myStop, selectedBusId]);
 
   return (
     <div
@@ -95,153 +101,266 @@ export function MapView({
         onMapClick && "cursor-crosshair",
         className,
       )}
-      onClick={handleClick}
     >
-      {/* Grid */}
-      <div
-        className="absolute inset-0 opacity-30 pointer-events-none"
-        style={{
-          backgroundImage:
-            "linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px)",
-          backgroundSize: "44px 44px",
-          maskImage: "radial-gradient(ellipse at center, black 35%, transparent 85%)",
-        }}
-      />
-      {/* Soft glow */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="h-[60%] w-[60%] rounded-full bg-primary/8 blur-3xl" />
-      </div>
+      <MapContainer center={[initialCenter.lat, initialCenter.lng]} zoom={14} className="h-full w-full" zoomControl>
+        <TileLayer
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; CARTO'
+        />
+        <MapClickCapture onMapClick={onMapClick} />
+        <MapViewportController
+          buses={buses}
+          selectedBusId={selectedBusId}
+          myStop={myStop}
+          polyline={polyline}
+        />
+        <TripPolyline polyline={polyline} />
+        <StopMarker myStop={myStop} onMapClick={onMapClick} stopDraggable={stopDraggable} />
 
-      {/* Empty state */}
+        {buses.map((bus) => (
+          <AnimatedBusMarker
+            key={bus.id}
+            bus={bus}
+            selected={selectedBusId === bus.id}
+            onBusClick={onBusClick}
+          />
+        ))}
+      </MapContainer>
+
       {buses.length === 0 && !myStop && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+        <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center text-muted-foreground">
           <MapPin className="h-8 w-8" />
           <p className="text-sm mt-2">No buses to show</p>
         </div>
       )}
 
-      {/* My Stop pin */}
-      {myStop && (
-        <PinMarker
-          x={project(myStop.lat, myStop.lng).x}
-          y={project(myStop.lat, myStop.lng).y}
-          label="My Stop"
-        />
-      )}
-
-      {/* Bus markers (smoothly animated) */}
-      {buses.map((b) => (
-        <SmoothBusMarker
-          key={b.id}
-          bus={b}
-          targetLat={b.lat}
-          targetLng={b.lng}
-          project={project}
-          selected={selectedBusId === b.id}
-          onClick={onBusClick ? () => onBusClick(b) : undefined}
-        />
-      ))}
-
       {showStubBanner && (
         <div className="absolute top-3 left-3 glass rounded-md px-2.5 py-1.5 text-[11px] flex items-center gap-2 z-10">
           <Bus className="h-3.5 w-3.5 text-primary" />
-          <span className="text-muted-foreground">Map preview · API key pending</span>
+          <span className="text-muted-foreground">OpenStreetMap · Leaflet</span>
         </div>
       )}
     </div>
   );
 }
 
-/* ---------------- markers ---------------- */
-
-interface SmoothMarkerProps {
+interface AnimatedBusMarkerProps {
   bus: MapBus;
-  targetLat: number;
-  targetLng: number;
-  project: (lat: number, lng: number) => { x: number; y: number };
   selected: boolean;
-  onClick?: () => void;
+  onBusClick?: (bus: MapBus) => void;
 }
 
-/** Lerps marker position toward the target lat/lng over ~1.5s using rAF. */
-function SmoothBusMarker({ bus, targetLat, targetLng, project, selected, onClick }: SmoothMarkerProps) {
-  const [pos, setPos] = useState<{ lat: number; lng: number }>({ lat: targetLat, lng: targetLng });
-  const animRef = useRef<number | null>(null);
-  const fromRef = useRef<{ lat: number; lng: number }>({ lat: targetLat, lng: targetLng });
-  const startRef = useRef<number>(0);
+function AnimatedBusMarker({ bus, selected, onBusClick }: AnimatedBusMarkerProps) {
+  const markerRef = useRef<L.Marker | null>(null);
+  const currentRef = useRef<{ lat: number; lng: number }>({ lat: bus.lat, lng: bus.lng });
+  const rafRef = useRef<number | null>(null);
+  const initialPosition = useRef<[number, number]>([bus.lat, bus.lng]);
 
   useEffect(() => {
-    fromRef.current = pos;
-    startRef.current = performance.now();
-    const moved = distanceMeters(pos.lat, pos.lng, targetLat, targetLng);
-    const duration = moved > 200 ? 800 : 1500; // big jumps animate quicker
-    if (animRef.current) cancelAnimationFrame(animRef.current);
+    const marker = markerRef.current;
+    if (!marker) return;
 
-    const tick = (t: number) => {
-      const k = Math.min(1, (t - startRef.current) / duration);
-      // ease-in-out cubic
-      const e = k < 0.5 ? 4 * k ** 3 : 1 - Math.pow(-2 * k + 2, 3) / 2;
-      const lat = fromRef.current.lat + (targetLat - fromRef.current.lat) * e;
-      const lng = fromRef.current.lng + (targetLng - fromRef.current.lng) * e;
-      setPos({ lat, lng });
-      if (k < 1) animRef.current = requestAnimationFrame(tick);
+    marker.setIcon(createBusIcon(bus, selected));
+    const html = createPopupHtml(bus);
+    if (!marker.getPopup()) {
+      marker.bindPopup(html, { className: "leaflet-dark-popup", offset: [0, -18] });
+    } else {
+      marker.getPopup()?.setContent(html);
+    }
+  }, [bus, selected]);
+
+  useEffect(() => {
+    const marker = markerRef.current;
+    if (!marker) return;
+
+    const from = currentRef.current;
+    const to = { lat: bus.lat, lng: bus.lng };
+    const moved = distanceMeters(from.lat, from.lng, to.lat, to.lng);
+
+    if (moved <= 0.5) {
+      currentRef.current = to;
+      marker.setLatLng(to);
+      return;
+    }
+
+    const duration = moved > 200 ? 800 : 1500;
+    const startMs = performance.now();
+
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+
+    const tick = (nowMs: number) => {
+      const k = Math.min(1, (nowMs - startMs) / duration);
+      const eased = k < 0.5 ? 4 * k ** 3 : 1 - Math.pow(-2 * k + 2, 3) / 2;
+      const lat = from.lat + (to.lat - from.lat) * eased;
+      const lng = from.lng + (to.lng - from.lng) * eased;
+      marker.setLatLng({ lat, lng });
+      currentRef.current = { lat, lng };
+
+      if (k < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        rafRef.current = null;
+      }
     };
-    animRef.current = requestAnimationFrame(tick);
+
+    rafRef.current = requestAnimationFrame(tick);
+
     return () => {
-      if (animRef.current) cancelAnimationFrame(animRef.current);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetLat, targetLng]);
+  }, [bus.lat, bus.lng]);
 
-  const { x, y } = project(pos.lat, pos.lng);
-  const ringColor =
-    bus.status === "active" ? "ring-success" : bus.status === "idle" ? "ring-warning" : "ring-muted-foreground";
-  const glow =
-    bus.status === "active" ? "bg-success/40" : bus.status === "idle" ? "bg-warning/30" : "bg-muted/20";
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
 
   return (
-    <button
-      type="button"
-      onClick={(e) => { e.stopPropagation(); onClick?.(); }}
-      className="absolute -translate-x-1/2 -translate-y-1/2 group focus:outline-none"
-      style={{ left: `${x}%`, top: `${y}%` }}
-    >
-      <div className="relative">
-        <div className={clsx("absolute inset-0 rounded-full blur-xl", glow)} />
-        <div
-          className={clsx(
-            "relative flex h-11 w-11 items-center justify-center rounded-full bg-surface-elevated ring-2 transition-transform",
-            ringColor,
-            selected && "scale-110 shadow-glow",
-          )}
-          style={{ transform: `rotate(${bus.heading}deg)` }}
-        >
-          <Navigation
-            className={clsx(
-              "h-5 w-5",
-              bus.status === "active" ? "text-success" : bus.status === "idle" ? "text-warning" : "text-muted-foreground",
-            )}
-            fill="currentColor"
-          />
-        </div>
-      </div>
-      <div className="mt-1.5 glass rounded-md px-2 py-0.5 text-[10px] font-mono whitespace-nowrap text-center">
-        {bus.busNumber}
-      </div>
-    </button>
+    <Marker
+      ref={(marker) => {
+        markerRef.current = marker;
+      }}
+      position={initialPosition.current}
+      icon={createBusIcon(bus, selected)}
+      eventHandlers={{
+        click: () => {
+          markerRef.current?.openPopup();
+          onBusClick?.(bus);
+        },
+      }}
+      keyboard={false}
+    />
   );
 }
 
-function PinMarker({ x, y, label }: { x: number; y: number; label: string }) {
+function StopMarker({
+  myStop,
+  onMapClick,
+  stopDraggable,
+}: {
+  myStop?: { lat: number; lng: number } | null;
+  onMapClick?: (coords: { lat: number; lng: number }) => void;
+  stopDraggable: boolean;
+}) {
+  const markerRef = useRef<L.Marker | null>(null);
+
+  if (!myStop) return null;
+
   return (
-    <div
-      className="absolute -translate-x-1/2 -translate-y-full pointer-events-none"
-      style={{ left: `${x}%`, top: `${y}%` }}
-    >
-      <div className="flex flex-col items-center">
-        <div className="glass rounded-md px-2 py-0.5 text-[10px] font-medium mb-1">{label}</div>
-        <MapPin className="h-6 w-6 text-primary drop-shadow-[0_0_6px_hsl(var(--primary)/0.6)]" fill="currentColor" />
-      </div>
-    </div>
+    <Marker
+      ref={(marker) => {
+        markerRef.current = marker;
+      }}
+      position={[myStop.lat, myStop.lng]}
+      draggable={stopDraggable}
+      eventHandlers={
+        stopDraggable
+          ? {
+              dragend: () => {
+                const marker = markerRef.current;
+                if (!marker || !onMapClick) return;
+                const next = marker.getLatLng();
+                onMapClick({ lat: next.lat, lng: next.lng });
+              },
+            }
+          : undefined
+      }
+    />
   );
+}
+
+function MapClickCapture({
+  onMapClick,
+}: {
+  onMapClick?: (coords: { lat: number; lng: number }) => void;
+}) {
+  useMapEvents({
+    click: (event) => {
+      onMapClick?.({ lat: event.latlng.lat, lng: event.latlng.lng });
+    },
+  });
+  return null;
+}
+
+function TripPolyline({
+  polyline,
+}: {
+  polyline?: { lat: number; lng: number }[];
+}) {
+  const map = useMap();
+  const polylineRef = useRef<L.Polyline | null>(null);
+
+  useEffect(() => {
+    polylineRef.current?.remove();
+    polylineRef.current = null;
+
+    if (!polyline || polyline.length < 2) return;
+
+    polylineRef.current = L.polyline(
+      polyline.map((p) => [p.lat, p.lng] as [number, number]),
+      { color: "#4F8EF7", weight: 3, opacity: 0.85 },
+    ).addTo(map);
+
+    return () => {
+      polylineRef.current?.remove();
+      polylineRef.current = null;
+    };
+  }, [map, polyline]);
+
+  return null;
+}
+
+function MapViewportController({
+  buses,
+  selectedBusId,
+  myStop,
+  polyline,
+}: {
+  buses: MapBus[];
+  selectedBusId?: string | null;
+  myStop?: { lat: number; lng: number } | null;
+  polyline?: { lat: number; lng: number }[];
+}) {
+  const map = useMap();
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    const selected = selectedBusId ? buses.find((bus) => bus.id === selectedBusId) : null;
+    if (selected) {
+      map.panTo([selected.lat, selected.lng], { animate: true, duration: 0.5 });
+      return;
+    }
+
+    if (polyline && polyline.length > 1) {
+      const bounds = L.latLngBounds(polyline.map((p) => [p.lat, p.lng] as [number, number]));
+      map.fitBounds(bounds, { padding: [40, 40] });
+      initializedRef.current = true;
+      return;
+    }
+
+    if (initializedRef.current) return;
+
+    const points = buses.map((bus) => [bus.lat, bus.lng] as [number, number]);
+    if (myStop) points.push([myStop.lat, myStop.lng]);
+    if (points.length === 0) return;
+
+    if (points.length === 1) {
+      map.setView(points[0], 15, { animate: false });
+    } else {
+      const bounds = L.latLngBounds(points);
+      map.fitBounds(bounds, { padding: [40, 40] });
+    }
+    initializedRef.current = true;
+  }, [buses, map, myStop, polyline, selectedBusId]);
+
+  return null;
 }

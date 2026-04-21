@@ -115,10 +115,11 @@ export default function DriverDashboard() {
   // GPS push handler
   const onGpsUpdate = useCallback(
     async (pos: Parameters<NonNullable<Parameters<typeof useGeoLocation>[0]["onUpdate"]>>[0]) => {
-      if (!tripId || !bus) return;
+      if (!tripId || !bus || !user) return;
       try {
         await pushLocation({
           busId: bus.id,
+          driverId: user.uid,
           tripId,
           lat: pos.lat,
           lng: pos.lng,
@@ -129,7 +130,7 @@ export default function DriverDashboard() {
         console.error("Failed to push location", e);
       }
     },
-    [tripId, bus],
+    [tripId, bus, user],
   );
 
   const { position, error: gpsError, supported, totalDistance } = useGeoLocation({

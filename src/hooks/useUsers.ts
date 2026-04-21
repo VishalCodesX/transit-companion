@@ -18,10 +18,24 @@ export interface UserDoc {
   role: Role;
   assignedBusId: string | null;
   photoURL: string | null;
+  lastLocation: {
+    lat: number;
+    lng: number;
+    heading: number;
+    speed: number;
+    updatedAt: Timestamp | null;
+  } | null;
   createdAt: Timestamp | null;
 }
 
 function toUser(uid: string, d: DocumentData): UserDoc {
+  const rawLocation = d.lastLocation;
+  const hasValidLocation =
+    rawLocation &&
+    typeof rawLocation === "object" &&
+    Number.isFinite(rawLocation.lat) &&
+    Number.isFinite(rawLocation.lng);
+
   return {
     uid,
     name: d.name ?? "",
@@ -29,6 +43,15 @@ function toUser(uid: string, d: DocumentData): UserDoc {
     role: (d.role ?? "student") as Role,
     assignedBusId: d.assignedBusId ?? null,
     photoURL: d.photoURL ?? null,
+    lastLocation: hasValidLocation
+      ? {
+          lat: Number(rawLocation.lat),
+          lng: Number(rawLocation.lng),
+          heading: Number.isFinite(rawLocation.heading) ? Number(rawLocation.heading) : 0,
+          speed: Number.isFinite(rawLocation.speed) ? Number(rawLocation.speed) : 0,
+          updatedAt: rawLocation.updatedAt ?? null,
+        }
+      : null,
     createdAt: d.createdAt ?? null,
   };
 }

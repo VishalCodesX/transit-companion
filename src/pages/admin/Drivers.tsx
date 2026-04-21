@@ -75,7 +75,18 @@ export default function AdminDrivers() {
       }
       await setDoc(doc(db, "users", reassign.uid), { assignedBusId: busId }, { merge: true });
       if (busId) {
-        await setDoc(doc(db, "buses", busId), { driverId: reassign.uid, driverName: reassign.name }, { merge: true });
+        const locationPatch = reassign.lastLocation
+          ? {
+              lat: reassign.lastLocation.lat,
+              lng: reassign.lastLocation.lng,
+              lastUpdated: serverTimestamp(),
+            }
+          : {};
+        await setDoc(
+          doc(db, "buses", busId),
+          { driverId: reassign.uid, driverName: reassign.name, ...locationPatch },
+          { merge: true },
+        );
       }
       toast.success("Driver reassigned");
       setReassign(null);

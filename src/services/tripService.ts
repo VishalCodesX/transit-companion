@@ -3,6 +3,7 @@ import {
   collection,
   doc,
   serverTimestamp,
+  setDoc,
   updateDoc,
 } from "firebase/firestore";
 import { db } from "./firebase";
@@ -34,11 +35,25 @@ export async function startTrip({ busId, driverId, lat, lng }: StartTripInput): 
     lng,
     lastUpdated: serverTimestamp(),
   });
+  await setDoc(
+    doc(db, "users", driverId),
+    {
+      lastLocation: {
+        lat,
+        lng,
+        heading: 0,
+        speed: 0,
+        updatedAt: serverTimestamp(),
+      },
+    },
+    { merge: true },
+  );
   return tripRef.id;
 }
 
 export interface LocationUpdate {
   busId: string;
+  driverId: string;
   tripId: string;
   lat: number;
   lng: number;
@@ -47,7 +62,7 @@ export interface LocationUpdate {
 }
 
 /** Update bus doc + append to locationLog subcollection. */
-export async function pushLocation({ busId, tripId, lat, lng, heading, speed }: LocationUpdate) {
+export async function pushLocation({ busId, driverId, tripId, lat, lng, heading, speed }: LocationUpdate) {
   await updateDoc(doc(db, "buses", busId), {
     lat,
     lng,
@@ -55,6 +70,19 @@ export async function pushLocation({ busId, tripId, lat, lng, heading, speed }: 
     speed,
     lastUpdated: serverTimestamp(),
   });
+  await setDoc(
+    doc(db, "users", driverId),
+    {
+      lastLocation: {
+        lat,
+        lng,
+        heading,
+        speed,
+        updatedAt: serverTimestamp(),
+      },
+    },
+    { merge: true },
+  );
   await addDoc(collection(db, "trips", tripId, "locationLog"), {
     lat,
     lng,
