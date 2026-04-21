@@ -34,13 +34,19 @@ export default function AdminDrivers() {
   async function handleReview(uid: string, decision: "approved" | "rejected") {
     setSavingUid(uid);
     try {
+      const payload: {
+        approvalStatus: "approved" | "rejected";
+        reviewedAt: ReturnType<typeof serverTimestamp>;
+        assignedBusId?: null;
+      } = {
+        approvalStatus: decision,
+        reviewedAt: serverTimestamp(),
+      };
+      if (decision === "rejected") payload.assignedBusId = null;
+
       await setDoc(
         doc(db, "users", uid),
-        {
-          approvalStatus: decision,
-          assignedBusId: decision === "rejected" ? null : undefined,
-          reviewedAt: serverTimestamp(),
-        },
+        payload,
         { merge: true },
       );
       toast.success(`Driver request ${decision}`);
