@@ -245,10 +245,7 @@ export default function Login() {
               autoComplete="username"
             />
             <FloatingInput id="password" type="password" value={password} onChange={setPassword} label="Password" icon={Lock} autoComplete="current-password" />
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] text-muted-foreground">
-                Admin login: <span className="font-mono">{ADMIN_USERNAME}</span> / <span className="font-mono">{ADMIN_PASSWORD}</span>
-              </p>
+            <div className="flex justify-end">
               <button
                 type="button"
                 onClick={() => {
