@@ -1,4 +1,4 @@
-import { Bus, Bell } from "lucide-react";
+import { Bus, Bell, LogOut } from "lucide-react";
 import { Avatar } from "./Avatar";
 import { Badge } from "./Badge";
 import { Button } from "./Button";
@@ -46,7 +46,14 @@ export function TopBar({ roleLabel, notificationsFor }: Props) {
               <span className="hidden sm:inline text-sm font-medium">{user.name}</span>
             </div>
           )}
-          <Button variant="ghost" size="sm" onClick={() => signOut()}>Sign out</Button>
+          <Button variant="ghost" size="sm" onClick={() => signOut()} className="hidden sm:inline-flex">Sign out</Button>
+          <button
+            onClick={() => signOut()}
+            className="sm:hidden h-9 w-9 rounded-full hover:bg-secondary flex items-center justify-center transition-colors"
+            aria-label="Sign out"
+          >
+            <LogOut className="h-4 w-4 text-muted-foreground" />
+          </button>
         </div>
       </div>
     </header>

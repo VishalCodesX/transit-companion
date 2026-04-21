@@ -116,7 +116,7 @@ export default function StudentDashboard() {
           </div>
 
           {/* Right column — map */}
-          <div className="lg:col-span-2 h-[640px] lg:sticky lg:top-20">
+          <div className="lg:col-span-2 h-[55vh] min-h-[360px] lg:h-[640px] lg:sticky lg:top-20">
             {busLoading ? (
               <div className="h-full flex items-center justify-center glass rounded-xl">
                 <Spinner size="lg" />
