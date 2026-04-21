@@ -11,7 +11,8 @@ const NAV = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
   { to: "/admin/fleet", label: "Fleet Map", icon: Map },
   { to: "/admin/buses", label: "Buses", icon: Truck },
-  { to: "/admin/drivers", label: "Drivers", icon: Users },
+  { to: "/admin/drivers", label: "Manage Drivers", icon: Users },
+  { to: "/admin/users", label: "Manage Users", icon: Users },
   { to: "/admin/history", label: "History", icon: History },
   { to: "/admin/notifications", label: "Notifications", icon: Bell },
 ];

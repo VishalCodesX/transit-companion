@@ -1,4 +1,5 @@
 import {
+  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut as fbSignOut,
   onAuthStateChanged,
@@ -9,12 +10,22 @@ import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db, isFirebaseConfigured } from "./firebase";
 import type { Role } from "@/utils/constants";
 
+export type ApprovalStatus = "pending" | "approved" | "rejected";
+
+export const ADMIN_USERNAME = "srmadmin";
+export const ADMIN_EMAIL = "srmadmin@transitiq.edu";
+export const ADMIN_PASSWORD = "srmadmin@123";
+
 export interface AppUser {
   uid: string;
   email: string;
   name: string;
   role: Role;
+  approvalStatus: ApprovalStatus;
   assignedBusId: string | null;
+  phoneNumber: string | null;
+  registrationNumber: string | null;
+  collegeEmail: string | null;
   photoURL: string | null;
 }
 
@@ -28,9 +39,45 @@ export async function fetchUserProfile(fbUser: FirebaseUser): Promise<AppUser | 
     email: fbUser.email ?? data.email ?? "",
     name: data.name ?? fbUser.email ?? "User",
     role: data.role as Role,
+    approvalStatus: (data.approvalStatus ?? "approved") as ApprovalStatus,
     assignedBusId: data.assignedBusId ?? null,
+    phoneNumber: data.phoneNumber ?? null,
+    registrationNumber: data.registrationNumber ?? null,
+    collegeEmail: data.collegeEmail ?? null,
     photoURL: data.photoURL ?? null,
   };
+}
+
+export function normalizeLoginIdentifier(identifier: string): string {
+  const trimmed = identifier.trim();
+  if (trimmed.toLowerCase() === ADMIN_USERNAME) return ADMIN_EMAIL;
+  return trimmed;
+}
+
+export async function ensureDefaultAdminAccount() {
+  if (!isFirebaseConfigured) throw new Error("Firebase is not configured. Add your VITE_FIREBASE_* env vars.");
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASSWORD);
+    await setDoc(
+      doc(db, "users", cred.user.uid),
+      {
+        email: ADMIN_EMAIL,
+        name: "SRM Admin",
+        role: "admin",
+        approvalStatus: "approved",
+        assignedBusId: null,
+        phoneNumber: null,
+        registrationNumber: null,
+        collegeEmail: null,
+        photoURL: null,
+        createdAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes("email-already-in-use")) throw err;
+  }
 }
 
 export async function signIn(email: string, password: string) {

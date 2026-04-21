@@ -14,6 +14,7 @@ import AdminOverview from "./pages/admin/Overview";
 import AdminFleet from "./pages/admin/Fleet";
 import AdminBuses from "./pages/admin/Buses";
 import AdminDrivers from "./pages/admin/Drivers";
+import AdminUsers from "./pages/admin/Users";
 import AdminHistory from "./pages/admin/History";
 import AdminNotifications from "./pages/admin/Notifications";
 import ComingSoon from "./pages/ComingSoon";
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/admin/fleet" element={<ProtectedRoute allow={["admin"]}><AdminFleet /></ProtectedRoute>} />
             <Route path="/admin/buses" element={<ProtectedRoute allow={["admin"]}><AdminBuses /></ProtectedRoute>} />
             <Route path="/admin/drivers" element={<ProtectedRoute allow={["admin"]}><AdminDrivers /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute allow={["admin"]}><AdminUsers /></ProtectedRoute>} />
             <Route path="/admin/history" element={<ProtectedRoute allow={["admin"]}><AdminHistory /></ProtectedRoute>} />
             <Route path="/admin/notifications" element={<ProtectedRoute allow={["admin"]}><AdminNotifications /></ProtectedRoute>} />
 

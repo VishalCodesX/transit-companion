@@ -35,7 +35,7 @@ const EMPTY: BusForm = {
 export default function AdminBuses() {
   const { buses, loading } = useAllBuses();
   const { users } = useAllUsers();
-  const drivers = users.filter((u) => u.role === "driver");
+  const drivers = users.filter((u) => u.role === "driver" && u.approvalStatus === "approved");
 
   const [editing, setEditing] = useState<BusForm | null>(null);
   const [creating, setCreating] = useState(false);

@@ -19,6 +19,7 @@ export function ProtectedRoute({ allow, children }: Props) {
     );
   }
   if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "admin" && user.approvalStatus !== "approved") return <Navigate to="/login" replace />;
   if (!allow.includes(user.role)) return <Navigate to={ROLE_HOME[user.role]} replace />;
   return <>{children}</>;
 }

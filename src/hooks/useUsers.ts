@@ -16,7 +16,11 @@ export interface UserDoc {
   name: string;
   email: string;
   role: Role;
+  approvalStatus: "pending" | "approved" | "rejected";
   assignedBusId: string | null;
+  phoneNumber: string | null;
+  registrationNumber: string | null;
+  collegeEmail: string | null;
   photoURL: string | null;
   lastLocation: {
     lat: number;
@@ -41,7 +45,11 @@ function toUser(uid: string, d: DocumentData): UserDoc {
     name: d.name ?? "",
     email: d.email ?? "",
     role: (d.role ?? "student") as Role,
+    approvalStatus: (d.approvalStatus ?? "approved") as "pending" | "approved" | "rejected",
     assignedBusId: d.assignedBusId ?? null,
+    phoneNumber: d.phoneNumber ?? null,
+    registrationNumber: d.registrationNumber ?? null,
+    collegeEmail: d.collegeEmail ?? null,
     photoURL: d.photoURL ?? null,
     lastLocation: hasValidLocation
       ? {

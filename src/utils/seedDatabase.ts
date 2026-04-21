@@ -70,7 +70,11 @@ export async function seedDatabase(): Promise<SeedResult> {
           email: acc.email,
           name: acc.name,
           role: acc.role,
+          approvalStatus: "approved",
           assignedBusId: acc.assignedBusId,
+          phoneNumber: null,
+          registrationNumber: null,
+          collegeEmail: acc.role === "student" ? acc.email : null,
           photoURL: null,
           createdAt: serverTimestamp(),
         });
