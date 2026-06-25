@@ -1,25 +1,36 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
-import Login from "./pages/Login";
-import ResetPassword from "./pages/ResetPassword";
-import DriverDashboard from "./pages/driver/Dashboard";
-import StudentDashboard from "./pages/student/Dashboard";
-import AdminOverview from "./pages/admin/Overview";
-import AdminFleet from "./pages/admin/Fleet";
-import AdminBuses from "./pages/admin/Buses";
-import AdminDrivers from "./pages/admin/Drivers";
-import AdminUsers from "./pages/admin/Users";
-import AdminHistory from "./pages/admin/History";
-import AdminNotifications from "./pages/admin/Notifications";
-import ComingSoon from "./pages/ComingSoon";
-import NotFound from "./pages/NotFound";
+import { Spinner } from "@/components/common/Spinner";
 import { OfflineBanner } from "@/components/common/OfflineBanner";
 
+const Login = lazy(() => import("./pages/Login"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const DriverDashboard = lazy(() => import("./pages/driver/Dashboard"));
+const StudentDashboard = lazy(() => import("./pages/student/Dashboard"));
+const AdminOverview = lazy(() => import("./pages/admin/Overview"));
+const AdminFleet = lazy(() => import("./pages/admin/Fleet"));
+const AdminBuses = lazy(() => import("./pages/admin/Buses"));
+const AdminDrivers = lazy(() => import("./pages/admin/Drivers"));
+const AdminUsers = lazy(() => import("./pages/admin/Users"));
+const AdminHistory = lazy(() => import("./pages/admin/History"));
+const AdminNotifications = lazy(() => import("./pages/admin/Notifications"));
+const ComingSoon = lazy(() => import("./pages/ComingSoon"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
 const queryClient = new QueryClient();
+
+function PageLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Spinner size="lg" />
+    </div>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -39,30 +50,32 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <OfflineBanner />
-          <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
+          <Suspense fallback={<PageLoading />}>
+            <Routes>
+              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
-            {/* Driver */}
-            <Route path="/driver" element={<ProtectedRoute allow={["driver"]}><DriverDashboard /></ProtectedRoute>} />
-            <Route path="/driver/history" element={<ProtectedRoute allow={["driver"]}><ComingSoon title="Trip History" subtitle="Your personal trip log will live here." /></ProtectedRoute>} />
-            <Route path="/driver/notifications" element={<ProtectedRoute allow={["driver"]}><ComingSoon title="Notifications" /></ProtectedRoute>} />
+              {/* Driver */}
+              <Route path="/driver" element={<ProtectedRoute allow={["driver"]}><DriverDashboard /></ProtectedRoute>} />
+              <Route path="/driver/history" element={<ProtectedRoute allow={["driver"]}><ComingSoon title="Trip History" subtitle="Your personal trip log will live here." /></ProtectedRoute>} />
+              <Route path="/driver/notifications" element={<ProtectedRoute allow={["driver"]}><ComingSoon title="Notifications" /></ProtectedRoute>} />
 
-            {/* Student */}
-            <Route path="/student" element={<ProtectedRoute allow={["student"]}><StudentDashboard /></ProtectedRoute>} />
+              {/* Student */}
+              <Route path="/student" element={<ProtectedRoute allow={["student"]}><StudentDashboard /></ProtectedRoute>} />
 
-            {/* Admin */}
-            <Route path="/admin" element={<ProtectedRoute allow={["admin"]}><AdminOverview /></ProtectedRoute>} />
-            <Route path="/admin/fleet" element={<ProtectedRoute allow={["admin"]}><AdminFleet /></ProtectedRoute>} />
-            <Route path="/admin/buses" element={<ProtectedRoute allow={["admin"]}><AdminBuses /></ProtectedRoute>} />
-            <Route path="/admin/drivers" element={<ProtectedRoute allow={["admin"]}><AdminDrivers /></ProtectedRoute>} />
-            <Route path="/admin/users" element={<ProtectedRoute allow={["admin"]}><AdminUsers /></ProtectedRoute>} />
-            <Route path="/admin/history" element={<ProtectedRoute allow={["admin"]}><AdminHistory /></ProtectedRoute>} />
-            <Route path="/admin/notifications" element={<ProtectedRoute allow={["admin"]}><AdminNotifications /></ProtectedRoute>} />
+              {/* Admin */}
+              <Route path="/admin" element={<ProtectedRoute allow={["admin"]}><AdminOverview /></ProtectedRoute>} />
+              <Route path="/admin/fleet" element={<ProtectedRoute allow={["admin"]}><AdminFleet /></ProtectedRoute>} />
+              <Route path="/admin/buses" element={<ProtectedRoute allow={["admin"]}><AdminBuses /></ProtectedRoute>} />
+              <Route path="/admin/drivers" element={<ProtectedRoute allow={["admin"]}><AdminDrivers /></ProtectedRoute>} />
+              <Route path="/admin/users" element={<ProtectedRoute allow={["admin"]}><AdminUsers /></ProtectedRoute>} />
+              <Route path="/admin/history" element={<ProtectedRoute allow={["admin"]}><AdminHistory /></ProtectedRoute>} />
+              <Route path="/admin/notifications" element={<ProtectedRoute allow={["admin"]}><AdminNotifications /></ProtectedRoute>} />
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

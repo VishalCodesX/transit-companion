@@ -29,3 +29,6 @@ export const ROLE_HOME: Record<Role, string> = {
 /** GPS throttle defaults */
 export const GPS_THROTTLE_METERS = 10;
 export const GPS_THROTTLE_MS = 8000;
+
+/** Bus is considered offline if no update for this many ms */
+export const BUS_STALE_MS = 120_000;

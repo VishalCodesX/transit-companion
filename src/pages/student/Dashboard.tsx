@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Bus, Gauge, MapPin, Navigation2, Wifi, WifiOff, Crosshair, Clock } from "lucide-react";
+import { Bus, Check, Gauge, MapPin, Navigation2, Wifi, WifiOff, Crosshair, Clock } from "lucide-react";
 import clsx from "clsx";
 import { TopBar } from "@/components/common/TopBar";
 import { Badge, LiveDot } from "@/components/common/Badge";
@@ -8,7 +8,7 @@ import { Spinner } from "@/components/common/Spinner";
 import { SmartMapView as MapView } from "@/components/common/SmartMapView";
 import { useAuth } from "@/context/AuthContext";
 import { useAllBuses, useBusLocation, type BusDoc } from "@/hooks/useBuses";
-import { useNotifications } from "@/hooks/useNotifications";
+import { useNotifications, markNotificationRead } from "@/hooks/useNotifications";
 import { distanceMeters } from "@/utils/mapUtils";
 
 export default function StudentDashboard() {
@@ -33,7 +33,6 @@ export default function StudentDashboard() {
   const { bus, loading: busLoading } = useBusLocation(selectedBusId);
 
   const lastUpdatedSec = bus?.lastUpdated ? Math.max(0, Math.floor((now - bus.lastUpdated.toMillis()) / 1000)) : null;
-  const isStale = lastUpdatedSec != null && lastUpdatedSec > 60;
 
   // ETA calculation: distance / speed. Falls back to 0 if no movement.
   const eta = useMemo(() => {
@@ -73,7 +72,6 @@ export default function StudentDashboard() {
               bus={bus}
               loading={busLoading}
               lastUpdatedSec={lastUpdatedSec}
-              isStale={isStale}
               eta={eta}
               hasStop={!!myStop}
               onClearStop={() => setMyStop(null)}
@@ -98,16 +96,41 @@ export default function StudentDashboard() {
 
             {notifications.length > 0 && (
               <div className="glass rounded-xl p-4">
-                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Notifications</p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                    Notifications
+                    {notifications.filter((n) => !n.isRead).length > 0 && (
+                      <span className="ml-1.5 text-primary font-medium">
+                        ({notifications.filter((n) => !n.isRead).length} new)
+                      </span>
+                    )}
+                  </p>
+                </div>
                 <ul className="space-y-2">
                   {notifications.slice(0, 4).map((n) => (
-                    <li key={n.id} className="text-xs border-l-2 border-primary/60 pl-3 py-0.5">
-                      <p>{n.message}</p>
-                      {n.createdAt && (
-                        <p className="text-muted-foreground mt-0.5">
-                          {formatDistanceToNow(n.createdAt.toDate(), { addSuffix: true })}
-                        </p>
-                      )}
+                    <li
+                      key={n.id}
+                      className={`text-xs border-l-2 pl-3 py-0.5 ${n.isRead ? "border-border opacity-60" : "border-primary/60"}`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p>{n.message}</p>
+                          {n.createdAt && (
+                            <p className="text-muted-foreground mt-0.5">
+                              {formatDistanceToNow(n.createdAt.toDate(), { addSuffix: true })}
+                            </p>
+                          )}
+                        </div>
+                        {!n.isRead && (
+                          <button
+                            onClick={() => markNotificationRead(n.id)}
+                            className="shrink-0 mt-0.5 text-primary hover:text-primary/80"
+                            title="Mark as read"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -131,7 +154,7 @@ export default function StudentDashboard() {
                         lat: bus.lat,
                         lng: bus.lng,
                         heading: bus.heading,
-                        status: isStale ? "offline" : bus.status,
+                        status: bus.status,
                       }]
                     : []
                 }
@@ -207,7 +230,6 @@ function ETACard({
   bus,
   loading,
   lastUpdatedSec,
-  isStale,
   eta,
   hasStop,
   onClearStop,
@@ -215,7 +237,6 @@ function ETACard({
   bus: BusDoc | null;
   loading: boolean;
   lastUpdatedSec: number | null;
-  isStale: boolean;
   eta: { km: number; minutes: number } | null;
   hasStop: boolean;
   onClearStop: () => void;
@@ -243,9 +264,9 @@ function ETACard({
           <h3 className="text-lg font-semibold">{bus.busNumber}</h3>
           <p className="text-xs text-muted-foreground">{bus.routeName}</p>
         </div>
-        {bus.status === "active" && !isStale ? (
+        {bus.status === "active" ? (
           <Badge variant="success" className="gap-1.5"><LiveDot /> Live</Badge>
-        ) : isStale || bus.status === "offline" ? (
+        ) : bus.status === "offline" ? (
           <Badge variant="neutral"><WifiOff className="h-3 w-3 mr-1" />Offline</Badge>
         ) : (
           <Badge variant="warning">Idle</Badge>

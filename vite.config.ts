@@ -19,4 +19,16 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ["react", "react-dom", "react-router-dom"],
+          firebase: ["firebase/app", "firebase/auth", "firebase/firestore", "firebase/analytics"],
+          leaflet: ["leaflet", "react-leaflet"],
+          vendor: ["date-fns", "clsx", "lucide-react", "react-hot-toast"],
+        },
+      },
+    },
+  },
 }));

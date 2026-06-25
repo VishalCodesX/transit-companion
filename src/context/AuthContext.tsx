@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -17,25 +18,52 @@ interface AuthCtx {
 
 const Ctx = createContext<AuthCtx | undefined>(undefined);
 
+const RETRY_MAX = 5;
+const RETRY_MS = 600;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const retryRef = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     const unsub = onAuthChange(async (fbUser) => {
       try {
         if (!fbUser) {
           setUser(null);
-        } else {
-          const profile = await fetchUserProfile(fbUser);
-          setUser(profile);
+          setLoading(false);
+          return;
         }
-      } finally {
+        retryRef.current = 0;
+        tryProfile(fbUser);
+      } catch {
         setLoading(false);
       }
     });
-    return () => unsub && unsub();
+    return () => {
+      unsub?.();
+      clearTimeout(timerRef.current);
+    };
   }, []);
+
+  function tryProfile(fbUser: import("firebase/auth").User) {
+    clearTimeout(timerRef.current);
+    fetchUserProfile(fbUser).then((profile) => {
+      if (profile) {
+        setUser(profile);
+        setLoading(false);
+        return;
+      }
+      retryRef.current++;
+      if (retryRef.current < RETRY_MAX) {
+        timerRef.current = setTimeout(() => tryProfile(fbUser), RETRY_MS * retryRef.current);
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    });
+  }
 
   const value = useMemo<AuthCtx>(
     () => ({

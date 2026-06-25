@@ -1,6 +1,6 @@
 import { initializeApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { enableMultiTabIndexedDbPersistence, getFirestore, type Firestore } from "firebase/firestore";
 import { getAnalytics, isSupported as analyticsSupported, type Analytics } from "firebase/analytics";
 
 /**
@@ -47,6 +47,17 @@ if (isFirebaseConfigured) {
   app = initializeApp(cfg);
   _auth = getAuth(app);
   _db = getFirestore(app);
+
+  // Offline persistence so cached data is available during signal drops
+  enableMultiTabIndexedDbPersistence(_db).catch((err) => {
+    if (err.code === "failed-precondition") {
+      // Multiple tabs open — persistence can only be enabled in one tab at a time
+      console.warn("Firestore persistence: multiple tabs open, skipping.");
+    } else if (err.code === "unimplemented") {
+      // Browser doesn't support IndexedDB
+      console.warn("Firestore persistence: browser doesn't support IndexedDB.");
+    }
+  });
 
   // Analytics only loads in browsers that support it (skips SSR / unsupported envs).
   analyticsSupported()

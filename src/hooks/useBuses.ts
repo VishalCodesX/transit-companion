@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   collection,
   doc,
@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "@/services/firebase";
 import type { BusStatus } from "@/utils/constants";
+import { BUS_STALE_MS } from "@/utils/constants";
 
 export interface BusDoc {
   id: string;
@@ -30,7 +31,19 @@ export interface BusDoc {
   lastUpdated: Timestamp | null;
 }
 
+function now() { return Timestamp.now(); }
+
+function effectiveStatus(raw: BusStatus, lastUpdated: Timestamp | null): BusStatus {
+  if (raw === "active" && lastUpdated) {
+    const elapsed = now().toMillis() - lastUpdated.toMillis();
+    if (elapsed > BUS_STALE_MS) return "offline";
+  }
+  return raw;
+}
+
 function toBus(id: string, d: DocumentData): BusDoc {
+  const rawStatus = (d.status ?? "offline") as BusStatus;
+  const lastUpdated = d.lastUpdated ?? null;
   return {
     id,
     busNumber: d.busNumber ?? "",
@@ -43,29 +56,40 @@ function toBus(id: string, d: DocumentData): BusDoc {
     speed: d.speed ?? 0,
     driverId: d.driverId ?? null,
     driverName: d.driverName ?? null,
-    status: (d.status ?? "offline") as BusStatus,
+    status: effectiveStatus(rawStatus, lastUpdated),
     currentTripId: d.currentTripId ?? null,
-    lastUpdated: d.lastUpdated ?? null,
+    lastUpdated,
   };
+}
+
+/** Periodically re-evaluate effective bus status for stale detection. */
+function useStaleTick() {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  return tick;
 }
 
 /** Subscribes to a single bus document. */
 export function useBusLocation(busId: string | null | undefined) {
-  const [bus, setBus] = useState<BusDoc | null>(null);
+  const [raw, setRaw] = useState<{ id: string; data: DocumentData } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const tick = useStaleTick();
 
   useEffect(() => {
     if (!isFirebaseConfigured || !busId) {
       setLoading(false);
-      setBus(null);
+      setRaw(null);
       return;
     }
     setLoading(true);
     const unsub = onSnapshot(
       doc(db, "buses", busId),
       (snap) => {
-        setBus(snap.exists() ? toBus(snap.id, snap.data()) : null);
+        setRaw(snap.exists() ? { id: snap.id, data: snap.data() } : null);
         setLoading(false);
       },
       (err) => {
@@ -76,14 +100,17 @@ export function useBusLocation(busId: string | null | undefined) {
     return () => unsub();
   }, [busId]);
 
+  const bus = useMemo(() => (raw ? toBus(raw.id, raw.data) : null), [raw, tick]);
+
   return { bus, loading, error };
 }
 
 /** Subscribes to all buses (admin fleet view). */
 export function useAllBuses() {
-  const [buses, setBuses] = useState<BusDoc[]>([]);
+  const [rawList, setRawList] = useState<{ id: string; data: DocumentData }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const tick = useStaleTick();
 
   useEffect(() => {
     if (!isFirebaseConfigured) {
@@ -93,9 +120,8 @@ export function useAllBuses() {
     const unsub = onSnapshot(
       collection(db, "buses"),
       (snap) => {
-        const list = snap.docs.map((d) => toBus(d.id, d.data()));
-        list.sort((a, b) => a.busNumber.localeCompare(b.busNumber));
-        setBuses(list);
+        const list = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
+        setRawList(list);
         setLoading(false);
       },
       (err) => {
@@ -105,6 +131,12 @@ export function useAllBuses() {
     );
     return () => unsub();
   }, []);
+
+  const buses = useMemo(() => {
+    const list = rawList.map((r) => toBus(r.id, r.data));
+    list.sort((a, b) => a.busNumber.localeCompare(b.busNumber));
+    return list;
+  }, [rawList, tick]);
 
   return { buses, loading, error };
 }

@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import toast from "react-hot-toast";
-import { Send, Bell } from "lucide-react";
+import { Check, Send, Bell } from "lucide-react";
 import { AdminSidebar } from "@/components/common/AdminSidebar";
 import { Badge } from "@/components/common/Badge";
 import { Button } from "@/components/common/Button";
 import { Spinner } from "@/components/common/Spinner";
 import { useAllBuses } from "@/hooks/useBuses";
-import { useNotifications, sendNotification } from "@/hooks/useNotifications";
+import { useNotifications, sendNotification, markNotificationRead } from "@/hooks/useNotifications";
 import type { Role } from "@/utils/constants";
 
 export default function AdminNotifications() {
@@ -89,10 +89,21 @@ export default function AdminNotifications() {
                 {items.map((n) => {
                   const linked = n.busId ? buses.find((b) => b.id === n.busId)?.busNumber : null;
                   return (
-                    <li key={n.id} className="border-l-2 border-primary/60 pl-3 py-1.5">
+                    <li key={n.id} className={`border-l-2 pl-3 py-1.5 ${n.isRead ? "border-border opacity-60" : "border-primary/60"}`}>
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <Badge variant="info">{n.targetRole === "all" ? "Everyone" : `${n.targetRole}s`}</Badge>
-                        {linked && <Badge variant="neutral">{linked}</Badge>}
+                        <div className="flex items-center gap-1.5">
+                          {linked && <Badge variant="neutral">{linked}</Badge>}
+                          {!n.isRead && (
+                            <button
+                              onClick={() => markNotificationRead(n.id)}
+                              className="text-primary hover:text-primary/80"
+                              title="Mark as read"
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <p className="text-sm">{n.message}</p>
                       {n.createdAt && (

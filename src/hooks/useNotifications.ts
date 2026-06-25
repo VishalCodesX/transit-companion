@@ -45,6 +45,11 @@ export function useNotifications(forRole?: Role) {
   return { items, loading };
 }
 
+export async function markNotificationRead(notifId: string) {
+  const { doc, updateDoc } = await import("firebase/firestore");
+  await updateDoc(doc(db, "notifications", notifId), { isRead: true });
+}
+
 export async function sendNotification(input: {
   targetRole: Role | "all";
   message: string;
