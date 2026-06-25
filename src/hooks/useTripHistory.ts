@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   collection,
   getDocs,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -63,7 +64,7 @@ export function useTripHistory(filters: TripFilters = {}) {
       return;
     }
     setLoading(true);
-    const constraints: QueryConstraint[] = [orderBy("startTime", "desc")];
+    const constraints: QueryConstraint[] = [orderBy("startTime", "desc"), limit(200)];
     if (busId) constraints.push(where("busId", "==", busId));
     if (driverId) constraints.push(where("driverId", "==", driverId));
     const q = query(collection(db, "trips"), ...constraints);

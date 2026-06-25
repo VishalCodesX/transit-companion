@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { db } from "@/services/firebase";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
@@ -93,6 +93,28 @@ export default function DriverDashboard() {
     };
   }, [user?.assignedBusId]);
 
+  // Realtime bus listener: detect admin emergency-end
+  useEffect(() => {
+    if (!tripId || !user?.assignedBusId) return;
+    const unsub = onSnapshot(
+      doc(db, "buses", user.assignedBusId),
+      (snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data();
+        if (data.currentTripId !== tripId) {
+          toast.error("Trip ended by administrator");
+          setTripId(null);
+          setTripStartMs(null);
+          setBus((prev) =>
+            prev ? { ...prev, status: "idle", currentTripId: null } : prev,
+          );
+        }
+      },
+      (err) => console.error("Bus listener error:", err),
+    );
+    return () => unsub();
+  }, [tripId, user?.assignedBusId]);
+
   // Load recent trips
   const reloadRecent = useCallback(async () => {
     if (!user) return;
@@ -106,9 +128,11 @@ export default function DriverDashboard() {
       const snap = await getDocs(q);
       setRecentTrips(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<RecentTrip, "id">) })));
     } catch (e) {
-      // Likely missing composite index — fail silently with a console hint
-      console.warn("Recent trips query failed (you may need a Firestore composite index on driverId+startTime):", e);
-    }
+        const msg = e instanceof Error ? e.message : String(e);
+        // Firestore returns a URL to create the composite index when one is missing
+        toast.error("Failed to load recent trips. Check browser console for index creation link if needed.");
+        console.warn("Recent trips query failed (need composite index on driverId+startTime):", msg);
+      }
   }, [user]);
   useEffect(() => { reloadRecent(); }, [reloadRecent, tripId]);
 

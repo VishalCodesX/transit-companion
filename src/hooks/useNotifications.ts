@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { collection, onSnapshot, orderBy, query, addDoc, serverTimestamp, Timestamp, type DocumentData } from "firebase/firestore";
+import { collection, limit, onSnapshot, orderBy, query, addDoc, serverTimestamp, Timestamp, type DocumentData } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "@/services/firebase";
 import type { Role } from "@/utils/constants";
 
@@ -32,7 +32,7 @@ export function useNotifications(forRole?: Role) {
       setLoading(false);
       return;
     }
-    const q = query(collection(db, "notifications"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "notifications"), orderBy("createdAt", "desc"), limit(100));
     const unsub = onSnapshot(q, (snap) => {
       let list = snap.docs.map((d) => toNotif(d.id, d.data()));
       if (forRole) list = list.filter((n) => n.targetRole === "all" || n.targetRole === forRole);

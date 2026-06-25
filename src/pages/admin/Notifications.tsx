@@ -49,14 +49,14 @@ export default function AdminNotifications() {
             <h2 className="font-semibold mb-3 flex items-center gap-2"><Send className="h-4 w-4 text-primary" /> Compose</h2>
             <div className="space-y-3">
               <Field label="Target Audience">
-                <select value={target} onChange={(e) => setTarget(e.target.value as Role | "all")} className="input">
+                <select value={target} onChange={(e) => setTarget(e.target.value as Role | "all")} className="w-full h-10 px-3 bg-input text-foreground border border-border rounded-md text-sm outline-none transition-all focus:border-ring focus:ring-2 focus:ring-ring/30">
                   <option value="all">Everyone</option>
                   <option value="student">Students only</option>
                   <option value="driver">Drivers only</option>
                 </select>
               </Field>
               <Field label="Linked Bus (optional)">
-                <select value={busId} onChange={(e) => setBusId(e.target.value)} className="input">
+                <select value={busId} onChange={(e) => setBusId(e.target.value)} className="w-full h-10 px-3 bg-input text-foreground border border-border rounded-md text-sm outline-none transition-all focus:border-ring focus:ring-2 focus:ring-ring/30">
                   <option value="">— None —</option>
                   {buses.map((b) => (
                     <option key={b.id} value={b.id}>{b.busNumber} · {b.routeName}</option>
@@ -69,7 +69,7 @@ export default function AdminNotifications() {
                   onChange={(e) => setMessage(e.target.value)}
                   rows={4}
                   placeholder="e.g. Bus 03 will be delayed by 10 minutes due to traffic."
-                  className="input min-h-[100px] py-2 resize-y"
+                  className="w-full h-10 min-h-[100px] px-3 py-2 bg-input text-foreground border border-border rounded-md text-sm outline-none transition-all focus:border-ring focus:ring-2 focus:ring-ring/30 resize-y"
                 />
               </Field>
               <Button onClick={handleSend} loading={sending} className="w-full" leftIcon={<Send className="h-4 w-4" />}>
@@ -109,15 +109,7 @@ export default function AdminNotifications() {
         </div>
       </main>
 
-      <style>{`
-        .input {
-          width: 100%; height: 40px; padding: 0 12px;
-          background: hsl(var(--input)); color: hsl(var(--foreground));
-          border: 1px solid hsl(var(--border)); border-radius: 6px;
-          font-size: 14px; outline: none; transition: border-color 150ms;
-        }
-        .input:focus { border-color: hsl(var(--ring)); box-shadow: 0 0 0 2px hsl(var(--ring) / 0.3); }
-      `}</style>
+
     </div>
   );
 }

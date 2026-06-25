@@ -2,7 +2,7 @@ import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import toast from "react-hot-toast";
 import { doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { Plus, Pencil, Trash2, UserCog } from "lucide-react";
+import { AlertTriangle, Plus, Pencil, Trash2, UserCog } from "lucide-react";
 import { db } from "@/services/firebase";
 import { AdminSidebar } from "@/components/common/AdminSidebar";
 import { Badge, LiveDot } from "@/components/common/Badge";
@@ -67,6 +67,16 @@ export default function AdminBuses() {
       toast.error("Bus ID and number are required.");
       return;
     }
+    const lat = Number(editing.lat);
+    const lng = Number(editing.lng);
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+      toast.error("Latitude must be a number between -90 and 90.");
+      return;
+    }
+    if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+      toast.error("Longitude must be a number between -180 and 180.");
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -74,8 +84,8 @@ export default function AdminBuses() {
         routeName: editing.routeName,
         licensePlate: editing.licensePlate,
         capacity: Number(editing.capacity) || 0,
-        lat: Number(editing.lat) || 0,
-        lng: Number(editing.lng) || 0,
+        lat,
+        lng,
         ...(creating ? {
           heading: 0, speed: 0, status: "idle", driverId: null, driverName: null,
           currentTripId: null, lastUpdated: serverTimestamp(),
@@ -107,6 +117,10 @@ export default function AdminBuses() {
 
   async function handleAssign(driverId: string | null) {
     if (!assigning) return;
+    if (assigning.status === "active" && assigning.currentTripId) {
+      toast.error("Cannot reassign a bus with an active trip. End the trip first.");
+      return;
+    }
     const driver = drivers.find((d) => d.uid === driverId) ?? null;
     const locationPatch = driver?.lastLocation
       ? {
@@ -217,29 +231,29 @@ export default function AdminBuses() {
                 disabled={!creating}
                 onChange={(e) => setEditing({ ...editing, id: e.target.value })}
                 placeholder="bus-04"
-                className="input"
+                className="w-full h-10 px-3 bg-input text-foreground border border-border rounded-md text-sm outline-none transition-all focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Bus Number">
-                <input value={editing.busNumber} onChange={(e) => setEditing({ ...editing, busNumber: e.target.value })} placeholder="Bus 04" className="input" />
+                <input value={editing.busNumber} onChange={(e) => setEditing({ ...editing, busNumber: e.target.value })} placeholder="Bus 04" className="w-full h-10 px-3 bg-input text-foreground border border-border rounded-md text-sm outline-none transition-all focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-60 disabled:cursor-not-allowed" />
               </Field>
               <Field label="License Plate">
-                <input value={editing.licensePlate} onChange={(e) => setEditing({ ...editing, licensePlate: e.target.value })} placeholder="UNIV-004" className="input" />
+                <input value={editing.licensePlate} onChange={(e) => setEditing({ ...editing, licensePlate: e.target.value })} placeholder="UNIV-004" className="w-full h-10 px-3 bg-input text-foreground border border-border rounded-md text-sm outline-none transition-all focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-60 disabled:cursor-not-allowed" />
               </Field>
             </div>
             <Field label="Route Name">
-              <input value={editing.routeName} onChange={(e) => setEditing({ ...editing, routeName: e.target.value })} placeholder="Route D — West Campus" className="input" />
+              <input value={editing.routeName} onChange={(e) => setEditing({ ...editing, routeName: e.target.value })} placeholder="Route D — West Campus" className="w-full h-10 px-3 bg-input text-foreground border border-border rounded-md text-sm outline-none transition-all focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-60 disabled:cursor-not-allowed" />
             </Field>
             <div className="grid grid-cols-3 gap-3">
               <Field label="Capacity">
-                <input type="number" value={editing.capacity} onChange={(e) => setEditing({ ...editing, capacity: +e.target.value })} className="input font-mono" />
+                <input type="number" value={editing.capacity} onChange={(e) => setEditing({ ...editing, capacity: +e.target.value })} className="w-full h-10 px-3 bg-input text-foreground border border-border rounded-md text-sm outline-none transition-all focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-60 disabled:cursor-not-allowed font-mono" />
               </Field>
               <Field label="Latitude">
-                <input type="number" step="0.0001" value={editing.lat} onChange={(e) => setEditing({ ...editing, lat: +e.target.value })} className="input font-mono" />
+                <input type="number" step="0.0001" value={editing.lat} onChange={(e) => setEditing({ ...editing, lat: +e.target.value })} className="w-full h-10 px-3 bg-input text-foreground border border-border rounded-md text-sm outline-none transition-all focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-60 disabled:cursor-not-allowed font-mono" />
               </Field>
               <Field label="Longitude">
-                <input type="number" step="0.0001" value={editing.lng} onChange={(e) => setEditing({ ...editing, lng: +e.target.value })} className="input font-mono" />
+                <input type="number" step="0.0001" value={editing.lng} onChange={(e) => setEditing({ ...editing, lng: +e.target.value })} className="w-full h-10 px-3 bg-input text-foreground border border-border rounded-md text-sm outline-none transition-all focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-60 disabled:cursor-not-allowed font-mono" />
               </Field>
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -254,6 +268,12 @@ export default function AdminBuses() {
       <Modal isOpen={!!assigning} onClose={() => setAssigning(null)} title={assigning ? `Assign driver to ${assigning.busNumber}` : ""}>
         {assigning && (
           <div className="space-y-3">
+            {assigning.status === "active" && assigning.currentTripId && (
+              <div className="flex gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <p>This bus has an active trip. Assigning a new driver while a trip is running may cause data conflicts.</p>
+              </div>
+            )}
             <p className="text-sm text-muted-foreground">Select a driver to assign to this bus. Choose "Unassigned" to remove the current driver.</p>
             <div className="space-y-1.5 max-h-72 overflow-y-auto">
               <button
@@ -289,16 +309,7 @@ export default function AdminBuses() {
         </div>
       </Modal>
 
-      <style>{`
-        .input {
-          width: 100%; height: 40px; padding: 0 12px;
-          background: hsl(var(--input)); color: hsl(var(--foreground));
-          border: 1px solid hsl(var(--border)); border-radius: 6px;
-          font-size: 14px; outline: none; transition: border-color 150ms;
-        }
-        .input:focus { border-color: hsl(var(--ring)); box-shadow: 0 0 0 2px hsl(var(--ring) / 0.3); }
-        .input:disabled { opacity: 0.6; cursor: not-allowed; }
-      `}</style>
+
     </div>
   );
 }

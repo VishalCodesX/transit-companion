@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { Check, UserCog, X } from "lucide-react";
+import { AlertTriangle, Check, UserCog, X } from "lucide-react";
 import { db } from "@/services/firebase";
 import { AdminSidebar } from "@/components/common/AdminSidebar";
 import { Badge } from "@/components/common/Badge";
@@ -59,6 +59,13 @@ export default function AdminDrivers() {
 
   async function handleReassign(busId: string | null) {
     if (!reassign) return;
+    if (busId) {
+      const target = buses.find((b) => b.id === busId);
+      if (target?.status === "active" && target?.currentTripId) {
+        toast.error("Cannot assign a bus with an active trip. End the trip first.");
+        return;
+      }
+    }
     setSaving(true);
     try {
       // Clear old bus assignment
@@ -201,6 +208,12 @@ export default function AdminDrivers() {
       <Modal isOpen={!!reassign} onClose={() => setReassign(null)} title={reassign ? `Assign bus to ${reassign.name}` : ""}>
         {reassign && (
           <div className="space-y-2">
+            {buses.some((b) => b.status === "active" && b.currentTripId) && (
+              <div className="flex gap-2 rounded-md border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <p>Some buses have active trips. Assigning a bus mid-trip may cause data conflicts.</p>
+              </div>
+            )}
             <button
               onClick={() => handleReassign(null)}
               className="w-full text-left rounded-md border border-border bg-surface/60 hover:border-primary/30 px-3 py-2 text-sm"
